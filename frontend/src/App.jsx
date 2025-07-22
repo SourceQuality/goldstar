@@ -7,9 +7,14 @@ function App() {
   const [recipient, setRecipient] = useState("");
 
   useEffect(() => {
-    axios.get("/api/auth/me", {
-      headers: { "X-User-Email": "alice@example.com" }
-    }).then((res) => setCurrentUser(res.data));
+    const token = localStorage.getItem("token");
+    if (!token) {
+      window.location.href = "/api/auth/login";
+      return;
+    }
+    axios
+      .get("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => setCurrentUser(res.data));
     axios.get("/api/users").then((res) => setUsers(res.data));
     if (Notification.permission !== "granted") {
       Notification.requestPermission();
@@ -18,11 +23,18 @@ function App() {
 
   const handleSendStar = () => {
     if (!recipient) return;
-    axios.post("/api/stars", { from_: currentUser.id, to: recipient }).then(() => {
-      const toUser = users.find((u) => u.id === recipient);
-      alert(`⭐ Star sent to ${toUser.name}`);
-      new Notification(`⭐ ${currentUser.name} sent a gold star to ${toUser.name}`);
-    });
+    const token = localStorage.getItem("token");
+    axios
+      .post(
+        "/api/stars",
+        { from_: currentUser.id, to: recipient },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      .then(() => {
+        const toUser = users.find((u) => u.id === recipient);
+        alert(`⭐ Star sent to ${toUser.name}`);
+        new Notification(`⭐ ${currentUser.name} sent a gold star to ${toUser.name}`);
+      });
   };
 
   return (
