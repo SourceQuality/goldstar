@@ -1,10 +1,14 @@
 version: '3'
 services:
   backend:
-    build: ./backend
+    container_name: goldstar-backend
+    image: ghcr.io/${GITHUB_REPOSITORY}/backend:latest
+    pull_policy: always
     ports:
       - "8000:8000"
   frontend:
-    build: ./frontend
+    container_name: goldstar-frontend
+    image: ghcr.io/${GITHUB_REPOSITORY}/frontend:latest
+    pull_policy: always
     ports:
       - "80:80"

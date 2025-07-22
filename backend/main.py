@@ -22,7 +22,7 @@ def get_me(request: Request):
     email = request.headers.get("x-user-email")
     if not email:
         raise HTTPException(status_code=401, detail="Missing SSO email header")
-    user = db["users"].setdefault(email, {"id": email, "name": email.split("@")[0]})
+    user = db["users"].setdefault(email, {"id": email, "name": email.split("@")[0], "stars": 0})
     return user
 
 @app.get("/api/users")
@@ -36,11 +36,17 @@ class Star(BaseModel):
 @app.post("/api/stars")
 def give_star(star: Star):
     db["stars"].append(star.dict())
+    if star.to in db["users"]:
+        db["users"][star.to]["stars"] += 1
     return {"success": True}
 
 @app.get("/api/stars")
 def get_stars():
     return db["stars"]
+
+@app.get("/api/user_stars")
+def get_user_stars():
+    return {uid: user["stars"] for uid, user in db["users"].items()}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
