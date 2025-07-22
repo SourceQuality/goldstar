@@ -1,0 +1,11 @@
+# Node.js dependencies and build artifacts
+frontend/node_modules/
+frontend/dist/
+frontend/package-lock.json
+
+# Python bytecode cache
+backend/__pycache__/
+*.pyc
+
+# OS artifacts
+.DS_Store
