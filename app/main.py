@@ -278,27 +278,54 @@ def give_star():
 @app.route('/logout')
 def logout():
     """
-    Handles the logout process.
-    It clears the local session and, if an IdP SLO URL is configured,
-    initiates a SAML Single Logout.
+    Handles the SAML Single Logout (SLO) process.
+    This endpoint serves two purposes:
+    1. Initiates the logout when a user clicks a "logout" link.
+    2. Processes the LogoutResponse sent back by the Identity Provider (IdP).
     """
     req = prepare_flask_request(request)
     auth = init_saml_auth(req)
+    
+    return_to = url_for('login')
+
+    # Case 1: Processing a LogoutResponse from the IdP.
+    # The IdP sends this after it has logged the user out of its own session.
+    if 'SAMLResponse' in request.args:
+        # The process_slo method validates the LogoutResponse.
+        # We provide a callback function (`lambda: session.clear()`) that
+        # the library will call to clear our local application session
+        # after it has successfully validated the response.
+        auth.process_slo(delete_session_cb=lambda: session.clear())
+        errors = auth.get_errors()
+        if not errors:
+            # SLO was successful. The user is fully logged out.
+            flash('You have been successfully logged out.', 'success')
+            return redirect(return_to)
+        else:
+            # Log any errors that occurred during the SLO process.
+            logging.error(f"Error processing SAML LogoutResponse: {', '.join(errors)}")
+            flash(f"An error occurred during logout.", 'error')
+            return redirect(return_to)
+
+    # Case 2: A user from our app is initiating the logout.
+    # We must not clear the session here. We need the session data to build
+    # the LogoutRequest that we send to the IdP.
     name_id = session.get('samlNameId')
     session_index = session.get('samlSessionIndex')
     
-    # Always clear the local session first.
-    session.clear()
-
-    # Check if a Single Logout URL is configured in the settings.
+    # If a Single Logout URL is configured, we initiate the SAML SLO flow.
     slo_url = auth.get_slo_url()
     if slo_url:
-        # If SLO is configured, redirect to the IdP's logout endpoint.
+        # This redirects the user to the IdP's logout endpoint.
+        # The IdP will then redirect back to this same '/logout' URL,
+        # which will be handled by Case 1 above.
         return redirect(auth.logout(name_id=name_id, session_index=session_index))
     else:
-        # If no SLO is configured, just redirect to the login page.
-        # The user is now logged out of our app.
-        return redirect(url_for('login'))
+        # If no SLO is configured, we can only perform a local logout.
+        session.clear()
+        flash('You have been logged out locally.', 'success')
+        return redirect(return_to)
+
 
 # --- Initialize the database after all functions are defined ---
 # This ensures that init_db() can find get_db_connection().
