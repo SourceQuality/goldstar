@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # The Python/Flask Web Application
+  goldstar_web:
+    container_name: goldstar
+    image: ghcr.io/SourceQuality/goldstar:latest
+    ports:
+      - "5000:5000" # Map port 5000 on the host to port 5000 in the container
+    volumes:
+      # Mount the local 'app' directory into the container.
+      # This allows for live code reloading without rebuilding the image.
+      - ./app:/usr/src/app
+    env_file:
+      - ./.env
+    networks:
+      - goldstar
+    depends_on:
+      - goldstar_db # Ensures the 'db' service starts before the 'web' service
+  # The PostgreSQL Database
+  goldstar_db:
+    container_name: goldstar_db
+    image: postgres:13-alpine # Use a specific, lightweight version of Postgres
+    volumes:
+      # Persist database data across container restarts
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      # --- Database Credentials ---
+      # These credentials must match the ones used in the DATABASE_URL above.
+      - POSTGRES_USER=goldstar_user
+      - POSTGRES_PASSWORD=supersecretpassword
+      - POSTGRES_DB=goldstar_db
+#    ports:
+#      # Optionally expose the database port to the host for debugging
+#      - "5432:5432"
+    networks:
+      - goldstar
+
+# Define the named volume for data persistence
+volumes:
+  postgres_data:
+
+networks:
+  goldstar:

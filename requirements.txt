@@ -1,0 +1,4 @@
+Flask>=2.0
+python3-saml
+psycopg2-binary
+gunicorn
