@@ -1,0 +1,71 @@
+# docker-compose.yml
+# Use this file to run the application locally for development.
+#
+# To run:
+# 1. Make sure you have Docker and Docker Compose installed.
+# 2. From the root of the project, run: `docker-compose up --build`
+#
+# The application will be available at http://localhost:5000
+
+version: '3.8'
+
+services:
+  # The Python/Flask Web Application
+  goldstar_web:
+    container_name: goldstar
+    build: . # Build the image from the Dockerfile in the current directory
+    ports:
+      - "5000:5000" # Map port 5000 on the host to port 5000 in the container
+    volumes:
+      # Mount the local 'app' directory into the container.
+      # This allows for live code reloading without rebuilding the image.
+      - ./app:/usr/src/app
+    environment:
+      # --- Flask Configuration ---
+      - FLASK_ENV=development # Enables debug mode
+      - FLASK_APP=main.py
+      # --- Database Connection ---
+      # This URL points to the 'db' service defined below.
+      - DATABASE_URL=postgresql://goldstar_user:supersecretpassword@goldstar_db:5432/goldstar_db
+      # --- SAML Configuration (for local development) ---
+      # You will need to replace these with your actual IdP details.
+      # For local testing, you might use a tool like `saml-test-idp`.
+      - SAML_IDP_ENTITY_ID
+      - SAML_IDP_SSO_URL=
+      - SAML_IDP_X509_CERT=
+      - SAML_SP_ENTITY_ID=
+      - SAML_SP_ACS_URL=
+      - SMTP_SERVER=
+      - SMTP_PORT=
+      - SMTP_USER=
+      - SMTP_PASSWORD=
+      - SMTP_SENDER_EMAIL=
+    networks:
+      - goldstar
+    depends_on:
+      - goldstar_db # Ensures the 'db' service starts before the 'web' service
+  # The PostgreSQL Database
+  goldstar_db:
+    container_name: goldstar_db
+    image: postgres:13-alpine # Use a specific, lightweight version of Postgres
+    volumes:
+      # Persist database data across container restarts
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      # --- Database Credentials ---
+      # These credentials must match the ones used in the DATABASE_URL above.
+      - POSTGRES_USER=goldstar_user
+      - POSTGRES_PASSWORD=supersecretpassword
+      - POSTGRES_DB=goldstar_db
+#    ports:
+#      # Optionally expose the database port to the host for debugging
+#      - "5432:5432"
+    networks:
+      - goldstar
+
+# Define the named volume for data persistence
+volumes:
+  postgres_data:
+
+networks:
+  goldstar:
