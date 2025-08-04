@@ -195,10 +195,12 @@ def index():
 
 @app.route('/login')
 def login():
-    """Initiates the SAML login process."""
+    """Initiates the SAML login process, forcing re-authentication."""
     req = prepare_flask_request(request)
     auth = init_saml_auth(req)
-    return redirect(auth.login())
+    # By setting force_authn=True, we are requesting that the IdP force
+    # the user to re-authenticate, even if they have an active session.
+    return redirect(auth.login(force_authn=True))
 
 @app.route('/saml/acs', methods=['POST'])
 def saml_acs():
