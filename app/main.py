@@ -234,10 +234,9 @@ def saml_acs():
         conn.close()
         # --- End User Provisioning ---
         
-        self_url = OneLogin_Saml2_Utils.get_self_url(req)
-        if 'RelayState' in request.form and self_url != request.form['RelayState']:
-            return redirect(auth.redirect_to(request.form['RelayState']))
-        
+        # The RelayState logic can cause a redirect loop if it points back to the
+        # login page. After a successful SAML assertion, we should always
+        # redirect the user to the main application page.
         return redirect(url_for('index'))
     else:
         return f"Error when processing SAML response: {', '.join(errors)}"
