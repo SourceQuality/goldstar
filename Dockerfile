@@ -16,9 +16,10 @@ COPY ./app /usr/src/app
 # Make port 5000 available to the world outside this container
 EXPOSE 5000
 
-# Define environment variables (can be overridden)
-ENV FLASK_APP=main.py
-ENV FLASK_RUN_HOST=0.0.0.0
+# Define environment variable to ensure Python output is sent straight to the terminal
+ENV PYTHONUNBUFFERED=1
 
-# Run the application
-CMD ["flask", "run"]
+# Run the application using Gunicorn
+# This is the standard way to run a Flask app in production.
+# It starts 4 worker processes, listening on port 5000.
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "main:app"]

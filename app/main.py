@@ -331,7 +331,11 @@ def logout():
 # This ensures that init_db() can find get_db_connection().
 init_db()
 
+# When running in production (e.g., via Gunicorn), the __name__ will not be
+# '__main__', so the app.run() block will not be executed. Gunicorn will
+# directly use the 'app' object defined in this file.
 if __name__ == "__main__":
-    # For local development only.
-    # In production, use a proper WSGI server like Gunicorn.
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # This block is for local development only.
+    # The FLASK_ENV environment variable is used to determine the mode.
+    is_development = os.environ.get('FLASK_ENV', 'production') == 'development'
+    app.run(host='0.0.0.0', port=5000, debug=is_development)
