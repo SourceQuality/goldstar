@@ -1,5 +1,6 @@
 # main.py
 import os
+import logging
 from flask import Flask, request, redirect, session, render_template, url_for, flash
 from urllib.parse import urlparse
 from onelogin.saml2.auth import OneLogin_Saml2_Auth
@@ -7,6 +8,13 @@ from onelogin.saml2.utils import OneLogin_Saml2_Utils
 import psycopg2
 import smtplib
 from email.mime.text import MIMEText
+
+# Configure logging to output to stdout, which will be visible in `docker logs`
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]
+)
 
 app = Flask(__name__)
 # It's crucial to set a secret key for session management.
@@ -104,18 +112,30 @@ def prepare_flask_request(request):
     }
 
 def send_notification_email(receiver_email, giver_name):
-    """Sends an email notification to the star recipient."""
+    """Sends an email notification to the star recipient with enhanced debugging."""
+    logging.debug("Attempting to send notification email.")
+    
     try:
+        # --- Load SMTP Configuration ---
         smtp_server = os.environ.get('SMTP_SERVER')
         smtp_port = int(os.environ.get('SMTP_PORT', 587))
         smtp_user = os.environ.get('SMTP_USER')
         smtp_password = os.environ.get('SMTP_PASSWORD')
         sender_email = os.environ.get('SMTP_SENDER_EMAIL', 'noreply@goldstar.com')
 
-        if not all([smtp_server, smtp_port, smtp_user, smtp_password]):
-            print("Email not sent: SMTP settings are not fully configured.")
+        # --- Log Configuration for Debugging ---
+        logging.debug(f"SMTP Server: {smtp_server}")
+        logging.debug(f"SMTP Port: {smtp_port}")
+        logging.debug(f"SMTP User: {'SET' if smtp_user else 'NOT SET'}")
+        # Do not log the password itself for security reasons.
+        logging.debug(f"SMTP Password: {'SET' if smtp_password else 'NOT SET'}")
+        logging.debug(f"Sender Email: {sender_email}")
+
+        if not all([smtp_server, smtp_port, smtp_user, smtp_password, sender_email]):
+            logging.warning("Email not sent: SMTP settings are not fully configured.")
             return
 
+        # --- Construct Email Message ---
         subject = "You've Received a Gold Star! ⭐"
         body = f"Congratulations!\n\nYou have received a gold star from {giver_name}.\n\nKeep up the great work!\n\nThe Gold Star Team"
         
@@ -124,14 +144,26 @@ def send_notification_email(receiver_email, giver_name):
         msg['From'] = sender_email
         msg['To'] = receiver_email
 
+        # --- Send Email with SMTP Debugging ---
+        logging.debug(f"Connecting to SMTP server at {smtp_server}:{smtp_port}")
         with smtplib.SMTP(smtp_server, smtp_port) as server:
+            # Enable SMTP debug output to print the conversation with the server
+            server.set_debuglevel(1)
+            
+            logging.debug("Starting TLS...")
             server.starttls()
+            
+            logging.debug(f"Logging in as {smtp_user}...")
             server.login(smtp_user, smtp_password)
+            
+            logging.debug(f"Sending email to {receiver_email} from {sender_email}")
             server.sendmail(sender_email, [receiver_email], msg.as_string())
-            print(f"Notification email sent to {receiver_email}")
+            
+            logging.info(f"Notification email successfully sent to {receiver_email}")
 
     except Exception as e:
-        print(f"Error sending email: {e}")
+        # Log the full exception details
+        logging.error("Error sending email:", exc_info=True)
 
 
 # --- Route Definitions ---
