@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: goldstar-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: goldstar-web
+  template:
+    metadata:
+      labels:
+        app: goldstar-web
+    spec:
+      containers:
+        - name: goldstar-web
+          image: ghcr.io/SourceQuality/goldstar:latest
+          ports:
+            - containerPort: 5000
+          envFrom:
+            - secretRef:
+                name: postgres-secret
+            - secretRef:
+                name: goldstar-app-secrets
+          env:
+            - name: DATABASE_URL
+              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: goldstar-web
+spec:
+  selector:
+    app: goldstar-web
+  ports:
+    - port: 80
+      targetPort: 5000
+  type: ClusterIP

@@ -200,7 +200,7 @@ def login():
     auth = init_saml_auth(req)
     # By setting force_authn=True, we are requesting that the IdP force
     # the user to re-authenticate, even if they have an active session.
-    return redirect(auth.login(force_authn=True))
+    return redirect(auth.login())
 
 @app.route('/saml/acs', methods=['POST'])
 def saml_acs():
